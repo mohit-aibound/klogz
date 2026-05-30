@@ -1,0 +1,20 @@
+[package]
+name = "klogz"
+version = "0.1.0"
+edition = "2024"
+description = "Structured log capture, browsing, and kubectl log streaming"
+
+[[bin]]
+name = "klogz"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+anyhow = "1"
+dirs = "5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
