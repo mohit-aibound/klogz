@@ -117,16 +117,21 @@ fn pick_pod(ns: &str, tail_lines: u32) -> Result<Option<String>> {
         .spawn()
         .context("failed to spawn kubectl get pods")?;
 
-    let preview = format!("kubectl logs --tail={tail_lines} -n {ns} {{1}} 2>&1");
-    let less_bind = format!(
-        "ctrl-l:execute(kubectl logs --tail={tail_lines} -n {ns} {{1}} | less)"
+    let colorize = "perl -pe 's/\\b(ERROR|FATAL)\\b/\\e[31m$1\\e[0m/g; s/\\b(WARN|WARNING)\\b/\\e[33m$1\\e[0m/g; s/\\b(INFO)\\b/\\e[36m$1\\e[0m/g; s/\\b(DEBUG|TRACE)\\b/\\e[2m$1\\e[0m/g'";
+    let preview = format!(
+        "kubectl logs --tail={tail_lines} -n {ns} {{1}} 2>&1 | {colorize}"
     );
+    let less_bind = format!(
+        "ctrl-l:execute(kubectl logs --tail={tail_lines} -n {ns} {{1}} 2>&1 | {colorize} | less -R)"
+    );
+    let copy_bind = "enter:execute-silent(echo -n {1} | pbcopy)+accept";
     let prompt = format!("Select Pod ({ns}) > ");
 
     let mut fzf = Command::new("fzf")
         .args([
             "--tac",
             "--header-lines=1",
+            "--ansi",
             "--height", "80%",
             "--prompt", &prompt,
             "--layout=reverse",
@@ -134,6 +139,7 @@ fn pick_pod(ns: &str, tail_lines: u32) -> Result<Option<String>> {
             "--preview-window=right:60%:wrap",
             "--bind", "ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down",
             "--bind", &less_bind,
+            "--bind", copy_bind,
         ])
         .stdin(kubectl.stdout.context("kubectl stdout missing")?)
         .stdout(Stdio::piped())

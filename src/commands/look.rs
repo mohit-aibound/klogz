@@ -15,7 +15,9 @@ pub fn run() -> Result<()> {
     let mut fzf = Command::new("fzf")
         .args([
             "--height", "80%",
-            "--preview", r#"echo "── {}" && wc -l {} && echo "──" && tail -60 {}"#,
+            "--ansi",
+            "--preview",
+            r#"f="{}"; echo "── $f" && wc -l "$f" && echo "──" && if command -v bat >/dev/null 2>&1; then bat --color=always --style=numbers --line-range :200 "$f"; else tail -60 "$f"; fi"#,
             "--preview-window=right:60%",
             "--prompt=logs > ",
         ])
